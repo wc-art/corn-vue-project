@@ -25,7 +25,7 @@ export default defineConfig({
         // target: VITE_APP_UPLOAD_URL,
         // target: 'http://192.168.3.2:8989',
         // target: 'http://10.162.67.252:8989',
-        target: 'http://192.168.153.71:8080',
+        target: 'http://43.143.200.52:8080',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/dev-api/, '')
       }
