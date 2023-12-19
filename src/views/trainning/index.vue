@@ -77,8 +77,8 @@
         <el-input v-model="modelsForm.email" placeholder="Please input Email Address"></el-input>
       </el-form-item>
       <div class="num_title">INPUT MODEL NAME</div>
-      <el-form-item label="Model Name" prop="name">
-        <el-input v-model="modelsForm.name" placeholder="Please input Model name"></el-input>
+      <el-form-item label="Model Name" prop="modelName">
+        <el-input v-model="modelsForm.modelName" placeholder="Please input Model name"></el-input>
       </el-form-item>
       <el-form-item label="Action">
         <el-button type="primary" :icon="Promotion" @click="handleRun">RUN</el-button>
@@ -91,11 +91,13 @@
 
 
 <script setup name="TrainningModels">
-import { ref, reactive, getCurrentInstance, computed, onMounted } from 'vue';
+import { ref, reactive, getCurrentInstance, computed, onMounted, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { Promotion,Refresh } from '@element-plus/icons-vue';
+import { Promotion, Refresh } from '@element-plus/icons-vue';
 import { getOptions } from '@/api/datasets';
 import { trainningModelsRun } from '@/api/trainningModels';
+import { getHPOById } from '@/api/trainningHPO';
+import { parseResult } from '@/utils/parse';
 import { parseModelsForm, parseRules } from '@/views/trainning/parse';
 
 // vue示例工具
@@ -110,23 +112,22 @@ const species = route.params.species;
 // 表单实例
 const formRef = ref();
 
-// 表单参数
-const modelsForm = reactive(route.params.model ?? parseModelsForm(false));
-
 // 表单中的一些已知和补充信息
 const otherLabelType = ref('');
-const genoOptions = [];
-const phenoOptions = [];
-const environmentOptions = [];
-const algorithmOptions = [{value: 'optunaTrain',label: 'optunaTrain'}]; // 运用哪种算法
+const genoOptions = ref([]);
+const phenoOptions = ref([]);
+const environmentOptions = ref([]);
+const algorithmOptions = [{ value: 'optunaTrain', label: 'optunaTrain' }]; // 运用哪种算法
 
+// 表单参数
+const modelsForm = reactive(parseModelsForm(false));
 const labelType = computed(() => modelsForm.labelType === 'Other' ? otherLabelType.value : modelsForm.labelType);
 // 预测
 function handleRun() {
   formRef.value.validate(valid => {
     if (valid) {
       // 预测接口
-      trainningModelsRun({ ...modelsForm, labelType: labelType.value }).then(() => {
+      trainningModelsRun({ ...modelsForm, labelType: labelType.value,species }).then(() => {
         $modal.msgSuccess('success!');
         router.push(`/models/${species}`);
       });
@@ -139,17 +140,41 @@ function handleRun() {
 
 // 校验规则
 const rules = reactive({
-  ...parseRules(modelsForm), name: [
+  ...parseRules(modelsForm), modelName: [
     { required: true, message: 'Please input Model Name', trigger: 'blur' }
   ]
 });
 
 onMounted(async () => {
-  getList()
-  const data = await getOptions(species)
-  genoOptions.value = data[0]
-  phenoOptions.value = data[1]
-  environmentOptions.value = data[2]
+  const data = await getOptions(species);
+  genoOptions.value = data[0];
+  phenoOptions.value = data[1];
+  environmentOptions.value = data[2];
+
+  let form = null, labelTypeParams = null;
+  if (route.query.id) {
+    form = (await getHPOById(route.query.id)).data;
+  }
+  if (form) {
+    if (form.labelType !== 'DTA' && form.labelType !== 'EW' && form.labelType !== 'PH') {
+      labelTypeParams = 'Other';
+      otherLabelType.value = form.labelType;
+    } else {
+      labelTypeParams = form.labelType;
+    }
+    modelsForm.datasetGenoId = form.datasetGenoId;
+    modelsForm.datasetPhenoId = form.datasetPhenoId;
+    modelsForm.datasetEnvirId = form.datasetEnvirId;
+    modelsForm.labelType = labelTypeParams;
+    modelsForm.algorithm = form.algorithm;
+    modelsForm.lr = +form.lr;
+    modelsForm.dropout = +form.dropout;
+    modelsForm.batch = +form.batch;
+    modelsForm.depth = +form.depth;
+    modelsForm.neurons1 = +form.neurons1;
+    modelsForm.neurons2 = +form.neurons2;
+    modelsForm.email = form.email;
+  }
 });
 </script>
 

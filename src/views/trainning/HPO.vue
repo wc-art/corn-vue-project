@@ -131,8 +131,8 @@
 import { ref, reactive, getCurrentInstance, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { Select, Delete, Promotion, Link,Refresh } from '@element-plus/icons-vue';
-import { parseHPOMode } from '@/utils/parse.js';
-import {getOptions} from '@/api/datasets'
+import { parseHPOMode,parseResult } from '@/utils/parse.js';
+import {getOptions,getDatasetDetails} from '@/api/datasets'
 import { listHPO, delHPO, HPORun } from '@/api/trainningHPO';
 import { parseModelsForm, parseRules,parseStatus } from '@/views/trainning/parse';
 
@@ -180,7 +180,7 @@ async function handleRun() {
   formRef.value.validate(valid => {
     if (valid) {
       // 超参数优化接口调用
-      HPORun({ ...modelsForm, labelType: labelType.value }).then(() => {
+      HPORun({ ...modelsForm, labelType: labelType.value,species }).then(() => {
         $modal.msgSuccess('success!');
         getList()
       });
@@ -200,7 +200,6 @@ function handleDelete(row) {
     }).catch(err => {
       $modal.msgError('Deletion failed');
     });
-    console.log('delete');
   });
 }
 
@@ -213,13 +212,13 @@ function handleTrainning() {
 // model预测
 function handlePredict(row) {
   // 进入预测页面
-  router.push({ path: `/trainningmodels/${species}`, params: { model: { ...row, labelType: labelType.value } } });
+  router.push({ path: `/trainningmodels/${species}`,query:{id:row.taskId} });
 }
 
 // 请求model列表
 function getList() {
   tableLoading.value = true;
-  listHPO(queryParams).then(res => {
+  listHPO({...queryParams,species}).then(res => {
     tableLoading.value = false;
     modelList.value = res.rows;
     total.value = res.total;

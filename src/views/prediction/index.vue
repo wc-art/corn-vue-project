@@ -2,25 +2,25 @@
   <div class="top_form">
     <el-form class="form" ref="formRef" :rules="rules" :model="predictionForm" label-position="left" label-width="200px">
       <div class="num_title">SELECT MODEL</div>
-      <el-form-item label="Model Selection" prop="model">
-        <el-select v-model="predictionForm.model" placeholder="Select a dataset" class="filled">
-          <el-option v-for="item in modelOptions" :key="item.value" :label="item.label" :value="item.value" />
+      <el-form-item label="Model Selection" prop="modelId">
+        <el-select v-model="predictionForm.modelId" placeholder="Select a dataset" class="filled">
+          <el-option v-for="item in modelOptions" :key="item.taskId" :label="item.modelName" :value="item.taskId" />
         </el-select>
       </el-form-item>
       <div class="num_title">SELECT DATASET</div>
       <el-form-item label="Genomic Dataset Selection" prop="datasetGenoId">
         <el-select v-model="predictionForm.datasetGenoId" placeholder="Select a dataset" class="filled">
-          <el-option v-for="item in genoOptions" :key="item.value" :label="item.label" :value="item.value" />
+          <el-option v-for="item in genoOptions" :key="item.datasetId" :label="item.datasetName" :value="item.datasetId" />
         </el-select>
       </el-form-item>
       <el-form-item label="Phenotype Dataset Selection" prop="datasetPhenoId">
         <el-select v-model="predictionForm.datasetPhenoId" placeholder="Select a dataset" class="filled">
-          <el-option v-for="item in phenoOptions" :key="item.value" :label="item.label" :value="item.value" />
+          <el-option v-for="item in phenoOptions" :key="item.datasetId" :label="item.datasetName" :value="item.datasetId" />
         </el-select>
       </el-form-item>
       <el-form-item label="Environment Dataset Selection" prop="datasetEnvirId">
         <el-select v-model="predictionForm.datasetEnvirId" placeholder="Select a dataset" class="filled">
-          <el-option v-for="item in environmentOptions" :key="item.value" :label="item.label" :value="item.value" />
+          <el-option v-for="item in environmentOptions" :key="item.datasetId" :label="item.datasetName" :value="item.datasetId" />
         </el-select>
       </el-form-item>
 
@@ -58,18 +58,18 @@
     border>
     <el-table-column type="selection" width="55" align="center" />
     <el-table-column label="TaskID" width="100" align="center" prop="taskId" />
-    <el-table-column label="Species" width="100" align="center" prop="taskId" />
+    <el-table-column label="Species" width="100" align="center" prop="species" />
     <el-table-column label="Genomic dataset" width="150" align="center" prop="datasetGenoName" />
     <el-table-column label="Phenotype dataset" width="160" align="center" prop="datasetPhenoName" />
     <el-table-column label="Environment dataset" width="170" align="center" prop="datasetEnvirName" />
-    <el-table-column label="Model" width="100" align="center" prop="model" />
+    <el-table-column label="Model" width="100" align="center" prop="modelName" />
     <el-table-column label="Status" width="100" align="center" prop="status">
       <template #default="scope">
         {{ parseStatus(scope.row.status) }}
       </template>
     </el-table-column>
-    <el-table-column label="Email" width="100" align="center" prop="email" />
-    <el-table-column label="Create time" width="150" align="center" prop="createTime">
+    <el-table-column label="Email" width="200" align="center" prop="email" />
+    <el-table-column label="Create time" width="160" align="center" prop="createTime">
       <template #default="scope">
         {{ parseTime(scope.row.createTime) }}
       </template>
@@ -79,7 +79,7 @@
       <template #default="scope">
         <el-button link type="danger" :icon="Delete" @click="handleDelete(scope.row)">delete</el-button>
         <!-- <el-button link type="warning" :icon="Edit" @click="handleEdit(scope.row)">Edit</el-button> -->
-        <el-button link type="info" :icon="Select" @click="handleDownload(scope.row)">Download</el-button>
+        <el-button link type="info" :icon="Select" @click="handleDownload(scope.row)" :disabled="scope.row.status!==1">Download</el-button>
       </template>
     </el-table-column>
   </el-table>
@@ -98,6 +98,7 @@ import { parseHPOMode } from '@/utils/parse.js';
 import { parseTime } from '@/utils/ruoyi';
 import { delPrediction, predictionRun, updatePrediction, listPrediction } from '@/api/prediction';
 import { getOptions } from '@/api/datasets';
+import { listModel} from '@/api/models'
 import { parseStatus } from '@/views/trainning/parse';
 
 // vue示例工具
@@ -124,16 +125,16 @@ const predictionForm = reactive({
   datasetPhenoId: null,
   datasetEnvirId: null,
   species: '',
-  model: null,
+  modelId: null,
   email: ''
 });
 
 // 表单中的一些已知和补充信息
 const speciesOptions = [];
-const genoOptions = [];
-const phenoOptions = [];
-const environmentOptions = [];
-const modelOptions = [];
+const genoOptions = ref([]);
+const phenoOptions = ref([]);
+const environmentOptions = ref([]);
+const modelOptions = ref([]);
 
 // prediction表格
 const predictionList = ref([]); // 列表
@@ -148,8 +149,9 @@ function handleRun() {
   formRef.value.validate(valid => {
     if (valid) {
       // 预测接口调用
-      predictionRun(predictionForm).then(() => {
+      predictionRun({...predictionForm,species}).then(() => {
         $modal.msgSuccess('success!');
+        getList()
       });
     } else {
       $modal.msgError('sumbit error');
@@ -181,21 +183,21 @@ function handleEdit() {
 const form = ref();
 
 // 确认修改
-function submitEdit() {
-  form.value.validate(valid => {
-    if (valid) {
-      // 提交修改数据
-      updatePrediction(predictionForm).then(() => {
-        dialogFormVisible.value = false;
-        $modal.msgSuccess('update success!');
-        getList()
-      });
-    } else {
-      $modal.msgError('submit error');
-      return false;
-    }
-  });
-}
+// function submitEdit() {
+//   form.value.validate(valid => {
+//     if (valid) {
+//       // 提交修改数据
+//       updatePrediction(predictionForm).then(() => {
+//         dialogFormVisible.value = false;
+//         $modal.msgSuccess('update success!');
+//         getList()
+//       });
+//     } else {
+//       $modal.msgError('submit error');
+//       return false;
+//     }
+//   });
+// }
 
 // model预测
 function handleDownload(row) {
@@ -206,7 +208,7 @@ function handleDownload(row) {
 // 请求model列表
 function getList() {
   tableLoading.value = true;
-  listPrediction(queryParams).then(res => {
+  listPrediction({...queryParams,species}).then(res => {
     tableLoading.value = false;
     predictionList.value = res.rows;
     total.value = res.total;
@@ -229,7 +231,7 @@ function handleSelectionChange(selection) {
 
 // 校验规则
 const rules = reactive({
-  model: [
+  modelId: [
     { required: true, message: 'Please Select a model', trigger: 'change' }
   ],
   datasetGenoId: [
@@ -250,6 +252,7 @@ onMounted(async () => {
   genoOptions.value = data[0];
   phenoOptions.value = data[1];
   environmentOptions.value = data[2];
+  modelOptions.value = (await listModel({species})).rows
 });
 </script>
 

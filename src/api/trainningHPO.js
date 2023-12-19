@@ -8,6 +8,14 @@ export function listHPO() {
   });
 }
 
+// 根据id获取详情
+export function getHPOById(id) {
+  return request({
+    url: `/system/hyperparameter/${id}`,
+    method: 'get'
+  })
+}
+
 // 删除HPO
 export function delHPO(idArr) {
   return request({

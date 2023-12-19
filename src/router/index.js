@@ -28,7 +28,6 @@ const router = createRouter({
       path: '/trainningmodels/:species?',
       name: 'TrainningModels',
       component: () => import('@/views/trainning/index.vue'),
-      props: true
     },
     {
       path: '/prediction/:species?',

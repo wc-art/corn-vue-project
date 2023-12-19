@@ -1,5 +1,6 @@
 import axios from 'axios'
 import {ElNotification,ElMessage} from 'element-plus'
+import errorCode from '@/utils/errorCode'
 
 axios.defaults.headers['Content-Type'] = 'application/json;charset=utf-8'
 // 创建axios实例
@@ -12,7 +13,9 @@ const service = axios.create({
 // 响应拦截器
 service.interceptors.response.use(res => {
   // 未设置状态码则默认成功状态
-  const code = res.data.code || 200;
+  const code = res.data.code || 200;    
+  // 获取错误信息
+  const msg = errorCode[code] || res.data.msg || errorCode['default']
    if (code === 500) {
     ElMessage({
       message: msg,
@@ -29,7 +32,6 @@ service.interceptors.response.use(res => {
   }
 },
 error => {
-  console.log('err' + error)
   let { message } = error;
   if (message == "Network Error") {
     message = "Network Error";

@@ -99,9 +99,7 @@
           <el-input v-model="datasetsForm.datasetName" placeholder="Please input name" />
         </el-form-item>
         <el-form-item label="Species" prop="species">
-          <el-select v-model="datasetsForm.species" placeholder="Select a species">
-            <el-option v-for="item in speciesOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
+          <el-input v-model="datasetsForm.species" placeholder="Please input species" />
         </el-form-item>
         <el-form-item label="Samples" prop="samples">
           <el-input v-model="datasetsForm.samples" placeholder="Please input samples" />
@@ -143,6 +141,8 @@
     <el-pagination class="page" v-show="total > 0" :total="total" v-model:currentPage="queryParams.pageNum"
       v-model:page-size="queryParams.pageSize" layout="total, sizes, prev, pager, next, jumper" @size-change="getList"
       @current-change="getList" :background="false" />
+
+
     <el-drawer v-model="drawer" :title="name" size="70%">
       <ShowCSVTable :url="curDatasetUrl" max-custom-h="85vh" />
     </el-drawer>
@@ -155,6 +155,7 @@ import { ref, reactive, getCurrentInstance, nextTick, onMounted } from 'vue';
 import { Plus, Delete, Edit, Download, Document, Search, Refresh, View } from '@element-plus/icons-vue';
 import ShowCSVTable from '@/views/datasets/ShowCSVTable.vue';
 import { listDataset, delDatasets, addDataset, } from '@/api/datasets';
+import { useRoute} from 'vue-router'
 import { dataType } from '@/utils/parse';
 import { parseTime } from '@/utils/ruoyi';
 
@@ -162,6 +163,12 @@ import { parseTime } from '@/utils/ruoyi';
 const { proxy: { $modal, $download } } = getCurrentInstance();
 // 表格加载
 const tableLoading = ref(false);
+
+// 路由
+const route = useRoute()
+
+// 物种
+const species = route.params.species
 
 // 查询相关
 const total = ref(2);
@@ -239,7 +246,7 @@ function handleDelete(row) {
 // 请求dataset列表
 function getList() {
   tableLoading.value = true;
-  listDataset(queryParams).then(res => {
+  listDataset({...queryParams,species}).then(res => {
     tableLoading.value = false;
     datasetsList.value = res.rows;
     total.value = res.total;

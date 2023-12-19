@@ -33,16 +33,20 @@
       <el-table-column label="TaskID" width="100" align="center" prop="taskId" />
       <el-table-column label="Name" width="100" align="center" prop="modelName" />
       <el-table-column label="Species" width="100" align="center" prop="species" />
-      <el-table-column label="Genomic dataset" width="150" align="center" prop="geno" />
-      <el-table-column label="Phenotype dataset" width="160" align="center" prop="pheno" />
-      <el-table-column label="Environment dataset" width="170" align="center" prop="environment" />
+      <el-table-column label="Genomic dataset" width="150" align="center" prop="datasetGenoName" />
+      <el-table-column label="Phenotype dataset" width="160" align="center" prop="datasetPhenoName" />
+      <el-table-column label="Environment dataset" width="170" align="center" prop="datasetEnvirName" />
       <el-table-column label="Phonetype name" width="150" align="center" prop="labelType" />
       <el-table-column label="Hyperparameter Mode" width="200" align="center">
         <template #default="scope">
           {{ parseHPOMode(scope.row) }}
         </template>
       </el-table-column>
-      <el-table-column label="Status" width="100" align="center" prop="status" />
+      <el-table-column label="Status" width="100" align="center" prop="status">
+        <template #default="scope">
+          {{ parseStatus(scope.row.status) }}
+        </template>
+      </el-table-column>
       <el-table-column label="Email" width="100" align="center" prop="email" />
       <el-table-column label="Create time" width="120" align="center" prop="createTime">
         <template #default="scope">
@@ -51,7 +55,7 @@
       </el-table-column>
       <el-table-column label="Result" width="100" align="center" fixed="right">
         <template #default="scope">
-          <el-button link type="info" :icon="Download" @click="handleDownload(scope.row)">download</el-button>
+          <el-button link type="info" :icon="Download" @click="handleDownload(scope.row)" :disabled="scope.row.status!==1">download</el-button>
         </template>
       </el-table-column>
       <el-table-column label="Action" align="center" class-name="small-padding fixed-width" fixed="right" width="100">
@@ -69,9 +73,7 @@
           <el-input v-model="modelsForm.modelName" placeholder="Please input name" />
         </el-form-item>
         <el-form-item label="Species" prop="species">
-          <el-select v-model="modelsForm.species" placeholder="Select a species">
-            <el-option v-for="item in speciesOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
+          <el-input v-model="modelsForm.species" placeholder="Please input species" />
         </el-form-item>
         <el-row>
           <el-col :span="10"> <el-form-item label="Learning_Rate(10^(-7)-0.01)" prop="lr" label-width="200">
@@ -140,10 +142,12 @@
 
 
 <script setup name="Datasets">
-import { ref, reactive, getCurrentInstance, nextTick,onMounted } from 'vue';
+import { ref, reactive, getCurrentInstance, nextTick, onMounted } from 'vue';
+import {useRoute} from 'vue-router'
 import { Plus, Delete, Search, Refresh, Download } from '@element-plus/icons-vue';
 import ShowCSVTable from '@/views/datasets/ShowCSVTable.vue';
 import { parseHPOMode } from '@/utils/parse';
+import {parseStatus} from '@/views/trainning/parse'
 import { listModel, delModel, addModel } from '@/api/models';
 import { parseTime } from '@/utils/ruoyi';
 
@@ -151,6 +155,12 @@ import { parseTime } from '@/utils/ruoyi';
 const { proxy: { $modal, $download } } = getCurrentInstance();
 // 表格加载
 const tableLoading = ref(false);
+
+// 路由
+const route = useRoute()
+
+// 物种
+const species = route.params.species
 
 // 查询相关
 const total = ref(2);
@@ -237,7 +247,7 @@ function handleDelete(row) {
 // 请求model列表
 function getList() {
   tableLoading.value = true;
-  listModel(queryParams).then(res => {
+  listModel({...queryParams,species}).then(res => {
     tableLoading.value = false;
     modelList.value = res.rows;
     total.value = res.total;
@@ -278,7 +288,6 @@ const rules = reactive({
   ]
 });
 
-
 const drawer = ref(false); // dataset详情窗口开启状态
 const name = ref(''); // 选中dataset名
 
@@ -309,7 +318,7 @@ function createData() {
 async function uploadFileSuccess(response) {
   const modelUrl = response.url;
   upload.value.clearFiles();
-  await addModel({ ...modelsForm, modelUrl});
+  await addModel({ ...modelsForm, modelUrl });
   $modal.msgSuccess('File uploaded successfully.');
   dialogFormVisible.value = false;
   getList();
@@ -328,11 +337,11 @@ function handleExceed(files) {
 }
 
 // Species 下拉框选项
-const speciesOptions = [{ label: 'maize', value: 'maize' }, { label: 'other', value: 'other' }, { label: 'wheat', value: 'wheat' }, { label: 'cotton', value: 'cotton' }, { label: 'other', value: 'other' }]
+const speciesOptions = [{ label: 'maize', value: 'maize' }, { label: 'other', value: 'other' }, { label: 'wheat', value: 'wheat' }, { label: 'cotton', value: 'cotton' }, { label: 'other', value: 'other' }];
 
 onMounted(() => {
-  getList()
-})
+  getList();
+});
 </script>
 
 <style scoped>
@@ -365,4 +374,5 @@ onMounted(() => {
 
 .filled {
   width: 100%;
-}</style>
+}
+</style>

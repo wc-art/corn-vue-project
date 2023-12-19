@@ -29,10 +29,17 @@ export function delDatasets(idArr) {
 // 获取数据集详情
 export function getDatasetDetails(id) {
   return request({
-    url: '',
+    url: `/system/datasets/${id}`,
     method: 'get'
   })
 }
+
+// 根据id获取name
+// export function getDatasetIdByName(id) {
+//   return request({
+//     url: '/system'
+//   })
+// }
 
 // 获取选项
 export function getOptions(species) {

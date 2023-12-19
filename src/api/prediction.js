@@ -1,26 +1,27 @@
 import request from './request.js';
 
 // 获取prediction列表
-export function listPrediction() {
+export function listPrediction(queryParams) {
   return request({
-    url: `/poem/selectByDynasty/${dynasty}`,
-    method: 'get'
+    url: `/system/prediction/list`,
+    method: 'get',
+    params: queryParams
   });
 }
 
 // 删除prediction
-export function delPrediction(id) {
+export function delPrediction(idArr) {
   return request({
-    url: ``,
-    method: 'post'
+    url: `/system/prediction/`+idArr,
+    method: 'delete'
   });
 }
 
 // 更新prediction
 export function updatePrediction(data) {
   return request({
-    url: '',
-    method: 'post',
+    url: '/system/prediction',
+    method: 'put',
     data
   })
 }
@@ -28,7 +29,7 @@ export function updatePrediction(data) {
 // run接口
 export function predictionRun(data) {
   return request({
-    url: '',
+    url: '/system/prediction',
     method: 'post',
     data
   })
